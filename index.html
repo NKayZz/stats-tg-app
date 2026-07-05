@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadlock Lobby Scout</title>
+    <!-- Подключаем скрипт Telegram для интеграции -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #12131a;
+            --panel-color: #1a1c24;
+            --accent-purple: #845ef7;
+            --text-main: #f1f3f5;
+            --text-dim: #9c36b5;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+        }
+        .search-box {
+            background: var(--panel-color);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #252836;
+            border: 1px solid #3b3f54;
+            border-radius: 8px;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            background: var(--accent-purple);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .lobby-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .team-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .player-card {
+            background: var(--panel-color);
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 4px solid var(--accent-purple);
+        }
+        .hero-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .stats {
+            text-align: right;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="search-box">
+        <input type="text" id="steamIdInput" placeholder="Введите Steam ID игрока...">
+        <button id="searchBtn">Проверить лобби</button>
+    </div>
+
+    <div id="lobby" class="lobby-container">
+        <!-- Сюда JS будет вставлять данные -->
+    </div>
+
+    <script>
+        // Инициализируем Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Расширяем на весь экран телефона
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const steamId = document.getElementById('steamIdInput').value.trim();
+            if(!steamId) return alert('Введите ID');
+            
+            // Вызываем функцию запроса к бэкенду
+            fetchLobbyData(steamId);
+        });
+
+        async function fetchLobbyData(id) {
+            const lobbyDiv = document.getElementById('lobby');
+            lobbyDiv.innerHTML = '<p>Ищем активный или последний матч...</p>';
+            
+            try {
+                // Вместо localhost тут будет URL твоего бэкенда
+                const response = await fetch(`server.php?action=get_lobby&steam_id=${id}`);
+                const data = await response.json();
+                
+                renderLobby(data);
+            } catch (error) {
+                lobbyDiv.innerHTML = '<p style="color:red;">Ошибка загрузки данных</p>';
+            }
+        }
+
+        function renderLobby(data) {
+            const lobbyDiv = document.getElementById('lobby');
+            lobbyDiv.innerHTML = ''; // Очищаем
+
+            if(!data.players) {
+                lobbyDiv.innerHTML = '<p>Матч не найден</p>';
+                return;
+            }
+
+            // Рендерим игроков (для примера просто списком)
+            data.players.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.innerHTML = `
+                    <div class="hero-info">
+                        <strong>${player.username}</strong>
+                        <span style="color:#aaa">${player.hero_name}</span>
+                    </div>
+                    <div class="stats">
+                        <div>Рейтинг: <b>${player.pp_score} PP</b></div>
+                        <div>Винрейт: <span style="color:#4caf50">${player.winrate}%</span></div>
+                    </div>
+                `;
+                lobbyDiv.innerHTML.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
